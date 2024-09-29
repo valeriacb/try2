@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>CV Search</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background-color: rgb(0, 31, 63);
+            font-family:"Montserrat", sans-serif;
+            color: #333;
+        }
+        .search-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            font-family:"Montserrat", sans-serif;
+        }
+        .search-input {
+            font-family:"Montserrat", sans-serif;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            width: 400px;
+            transition: border 0.3s;
+        }
+        .search-input:focus {
+            font-family:"Montserrat", sans-serif;
+            border-color: #007BFF;
+            outline: none;
+        }
+        .search-button {
+            background-color: rgb(234, 216, 177);
+            color: rgb(0, 31, 63);
+            font-size: 1.2rem;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            font-family:"Montserrat", sans-serif;
+        }
+        .search-button:hover {
+            background-color: rgb(26, 33, 48);
+            font-family:"Montserrat", sans-serif;
+            color: rgb(234, 216, 177);
+        }
+        .info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+        }
+        
+        .info-card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 10px rgb(26, 33, 48);
+            width: 600px; /* Wider container */
+            max-width: 90%; /* Optional: responsive width */
+            text-align: left;
+        }
+        
+        .info-item {
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+        
+        .percentage {
+            font-weight: bold;
+            color: #007BFF; /* Default color for percentage */
+            padding-left: 10px;
+        }
+        
+        .percentage.red {
+            color: red; /* Color for low percentage */
+        }
+        
+        .percentage.orange {
+            color: orange; /* Color for medium percentage */
+        }
+        
+        .percentage.green {
+            color: green; /* Color for high percentage */
+        }
+        
+    </style>
+</head>
+<body>
+
+    <!-- Search Container -->
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="Introduceți cuvinte cheie..." id="searchInput">
+        <button class="search-button" id="searchButton">CAUTĂ</button>
+    </div>
+
+    <!-- Info Container -->
+    <div class="info-container" id="infoContainer">
+        <!-- Dynamic candidate information will be appended here -->
+    </div>
+
+    <script>
+        const searchButton = document.getElementById("searchButton");
+    
+        searchButton.addEventListener("click", async () => {
+            const searchInput = document.getElementById("searchInput").value; // Get the keyword input
+            const infoContainer = document.getElementById("infoContainer"); // Reference to the info container
+            infoContainer.innerHTML = ''; // Clear previous results
+    
+            try {
+                const response = await fetch('/process_cvs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ keywords: searchInput }) // Send keywords in JSON format
+                });
+    
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log(result);
+                    
+                    // Loop through the CV matches and append them to the container
+                    for (const [cvName, matchInfo] of Object.entries(result)) {
+                        const { keyword_count, percentage_matched, matched_keywords } = matchInfo;
+    
+                        // Create a new card for each CV
+                        const infoCard = document.createElement('div');
+                        infoCard.className = 'info-card';
+    
+                        // Display the CV name
+                        const nameElement = document.createElement('div');
+                        nameElement.className = 'info-item';
+                        nameElement.textContent = `CV Name: ${cvName}`;
+                        infoCard.appendChild(nameElement);
+    
+                        // Display the number of matched keywords
+                        const keywordCountElement = document.createElement('div');
+                        keywordCountElement.className = 'info-item';
+                        keywordCountElement.textContent = `Matched Keywords: ${keyword_count}`;
+                        infoCard.appendChild(keywordCountElement);
+    
+                        // Display the percentage matched, with color coding
+                        const percentageElement = document.createElement('div');
+                        percentageElement.className = 'info-item';
+                        percentageElement.innerHTML = `Match Percentage: <span class="percentage">${percentage_matched.toFixed(2)}%</span>`;
+    
+                        // Apply color based on percentage
+                        if (percentage_matched >= 75) {
+                            percentageElement.querySelector('.percentage').classList.add('green');
+                        } else if (percentage_matched >= 50) {
+                            percentageElement.querySelector('.percentage').classList.add('orange');
+                        } else {
+                            percentageElement.querySelector('.percentage').classList.add('red');
+                        }
+                        infoCard.appendChild(percentageElement);
+    
+                        // Append the card to the info container
+                        infoContainer.appendChild(infoCard);
+                    }
+    
+                } else {
+                    console.error(result);
+                    infoContainer.innerHTML = `<div class="info-item">No matching CVs found or error occurred.</div>`;
+                }
+    
+            } catch (error) {
+                console.error('Error:', error);
+                infoContainer.innerHTML = `<div class="info-item">Error occurred while fetching CVs.</div>`;
+            }
+        });
+    </script>
+
+</body>
+</html>
